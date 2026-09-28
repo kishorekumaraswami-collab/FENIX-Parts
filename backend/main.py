@@ -80,9 +80,9 @@ class PredictionResponse(BaseModel):
 
 # API Endpoints
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
-    """Health check endpoint"""
+    """Health check endpoint (supports GET and HEAD for monitoring)"""
     return {
         "service": "Copart ROI Prediction API",
         "version": "2.0",
@@ -91,9 +91,9 @@ async def root():
     }
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check():
-    """Detailed health check"""
+    """Detailed health check (supports GET and HEAD for monitoring)"""
     if not model:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
