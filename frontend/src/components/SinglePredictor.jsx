@@ -73,7 +73,7 @@ function SinglePredictor() {
 
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'number' ? parseFloat(value) : value
+      [name]: type === 'number' ? (value === '' ? '' : parseFloat(value) || '') : value
     }));
   };
 
@@ -216,10 +216,39 @@ function SinglePredictor() {
     setError(null);
 
     try {
-      const response = await axios.post(`${API_URL}/predict`, formData);
+      // Clean formData: convert empty strings to default values
+      const cleanedData = {};
+      Object.keys(formData).forEach(key => {
+        const value = formData[key];
+        if (value === '' || value === null || value === undefined) {
+          // Skip empty values - backend will use defaults
+        } else {
+          cleanedData[key] = value;
+        }
+      });
+
+      const response = await axios.post(`${API_URL}/predict`, cleanedData);
       setResult(response.data);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Prediction failed. Please try again.');
+      let errorMessage = 'Prediction failed. Please try again.';
+      if (err.response?.data?.detail) {
+        const detail = err.response.data.detail;
+        if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else if (Array.isArray(detail)) {
+          // Format validation errors nicely
+          const errors = detail.map(e => {
+            const field = e.loc ? e.loc[e.loc.length - 1] : 'unknown';
+            return `${field}: ${e.msg || 'Invalid value'}`;
+          });
+          errorMessage = errors.join('; ');
+        } else {
+          errorMessage = JSON.stringify(detail);
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
